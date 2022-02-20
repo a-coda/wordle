@@ -2,6 +2,8 @@
 #   include("wordle.jl")
 #   solve("abbey", "wordlistfile.txt")
 
+using DataStructures
+
 @enum Score grey yellow green 
 
 const WORD_SIZE = 5
@@ -44,11 +46,11 @@ end
 
 # Collects the frequencies of the characters in each position
 function collect_character_frequencies(words)
-    frequencies = [Dict() for d in 1:WORD_SIZE]
+    frequencies = [DefaultDict(0) for d in 1:WORD_SIZE]
     for word in words
         for i in 1:WORD_SIZE
-            count = get(frequencies[i], word[i], 0)
-            frequencies[i][word[i]] = count + 1
+            character = word[i]
+            frequencies[i][character] += 1
         end
     end
     frequencies
@@ -59,13 +61,8 @@ end
 function find_average_word(frequencies)
     average_word = fill(' ', WORD_SIZE)
     for i in 1:WORD_SIZE
-        freq_character, freq_count = nothing, nothing
-        for (character, count) in frequencies[i]
-            if isnothing(freq_character) || count > freq_count
-                freq_character, freq_count = character, count
-            end
-        end
-        average_word[i] = freq_character
+        _, most_frequent_character = findmax(identity, frequencies[i])
+        average_word[i] = most_frequent_character
     end
     join(average_word)
 end    
@@ -73,19 +70,16 @@ end
 # Finds nearest real word to average word (representing frequent
 # characters) by valuing the matches against the average word.
 function find_nearest_real_word(average_word, words)
-    best_word, best_value = nothing, nothing
-    for word in words
-        value = value_of_score(score_word(word, average_word))
-        if isnothing(best_word) || value > best_value
-            best_word, best_value = word, value
-        end
+    function nearness_to_average_word(word)
+        score_value(score_word(word, average_word))
     end
-    best_word
+    _, nearest_word_index = findmax(nearness_to_average_word, words)
+    words[nearest_word_index]
 end
 
 # Determines the value of the score by assigning values to exact
 # and inexact matches
-function value_of_score(score)
+function score_value(score)
     values = Dict(green => 1.0, yellow => 0.5, grey => 0.0)
     sum(s -> values[s], score)
 end
@@ -100,16 +94,22 @@ end
 function score_match(match)
     score = copy(ALL_GREY)
     for i in 1:WORD_SIZE
-        if match[i] == i
-            score[i] = green
-        elseif match[i] > 0
-            score[i] = yellow
-        else
-            score[i] = grey
-        end
+        score[i] = score_position(match, i)
     end
     score
 end    
+
+# If the match aligns it's a green. If there is an unaligned match it
+# is yellow. Otherwise it is grey.
+function score_position(match, i)
+    if match[i] == i
+        green
+    elseif match[i] > 0
+        yellow
+    else
+        grey
+    end
+end
 
 # Connects exact matches first and then inexact matches.  
 function connect_words(word, answer)
@@ -185,30 +185,3 @@ end
 @assert find_average_word(collect_character_frequencies(["tiger", "spoor", "sheer"])) == "shger"
 @assert find_nearest_real_word("shger", ["tiger", "spoor", "sheer"]) == "sheer"
 
-# COMMENTS
-# obligatory wordle solver
-# origin of dictionary
-# test instead of assignment bug
-# late runtime notification of undefined functions (REPL?)
-# late runtime notification of nothing
-# costly search, bad algorithm
-# non-functional feeling in some functions
-# unit tests as asserts
-# assumed score problems
-# switched to character frequency
-# not using same dictionary
-# used REPL
-# does it the hard way (keeping hints)
-# fast
-# FORTRANY (okay for Julia!)
-# NYT change
-# character frequencies? (later change?)
-# colons
-# badly use template function with lambdas
-# most like Dylan
-# opening book like chess
-# had to delete a big duplicate mess of parallel functions
-# repl remembers old functions
-
-# TODO
-# findmax
