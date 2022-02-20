@@ -71,7 +71,7 @@ end
 # characters) by valuing the matches against the average word.
 function find_nearest_real_word(average_word, words)
     function nearness_to_average_word(word)
-        score_value(score_word(word, average_word))
+        value_score(score_word(word, average_word))
     end
     _, nearest_word_index = findmax(nearness_to_average_word, words)
     words[nearest_word_index]
@@ -79,7 +79,7 @@ end
 
 # Determines the value of the score by assigning values to exact
 # and inexact matches
-function score_value(score)
+function value_score(score)
     values = Dict(green => 1.0, yellow => 0.5, grey => 0.0)
     sum(s -> values[s], score)
 end
